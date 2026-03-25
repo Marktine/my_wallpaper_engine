@@ -1,0 +1,24 @@
+# Build directories and Meson outputs
+build/
+subprojects/
+meson-logs/
+meson-private/
+.ninja_deps
+.ninja_log
+compile_commands.json
+
+# Object files and compiled binaries
+*.o
+*.so
+*.a
+
+# Project specific testing artifacts
+*.log
+daemon.log
+test.mp4
+
+# IDEs and Editor metadata
+.vscode/
+.idea/
+*.swp
+*.swo

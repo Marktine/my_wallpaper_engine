@@ -1,0 +1,5 @@
+Checks: '-*,clang-analyzer-*,core.*,deadcode.*,unix.*,performance.*,portability.*,misc.*,bugprone.*'
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+AnalyzeTemporaryDtors: false
+FormatStyle: none
