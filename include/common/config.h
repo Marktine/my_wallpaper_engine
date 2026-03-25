@@ -11,6 +11,9 @@ struct app_config {
 // Loads configuration from a file. Returns true if successful.
 bool config_load(const char *path, struct app_config *config);
 
+// Saves configuration state directly to yaml
+bool config_save(const char *path, struct app_config *config);
+
 // Frees dynamically allocated configuration memory.
 void config_free(struct app_config *config);
 

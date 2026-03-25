@@ -25,6 +25,9 @@ bool g_wallpaper_changed = false;
 const char *g_wallpaper_path = NULL;
 int g_mpv_wakeup_fd = -1;
 
+struct app_config g_config;
+char g_config_path[1024] = {0};
+
 struct wl_display *display = NULL;
 struct wl_registry *registry = NULL;
 struct wl_compositor *compositor = NULL;
@@ -167,14 +170,13 @@ static void registry_global_remove(void *data, struct wl_registry *registry, uin
 static const struct wl_registry_listener registry_listener = { .global = registry_global, .global_remove = registry_global_remove };
 
 int main(int argc, char **argv) {
-    struct app_config g_config;
-    char config_path[1024] = {0};
+    memset(&g_config, 0, sizeof(struct app_config));
     const char *home = getenv("HOME");
     if (home) {
-        snprintf(config_path, sizeof(config_path), "%s/.config/my_wallpaper_engine/config.yaml", home);
+        snprintf(g_config_path, sizeof(g_config_path), "%s/.config/my_wallpaper_engine/config.yaml", home);
     }
 
-    if (config_load(config_path, &g_config) && g_config.default_wallpaper) {
+    if (config_load(g_config_path, &g_config) && g_config.default_wallpaper) {
         g_wallpaper_path = strdup(g_config.default_wallpaper);
     }
     
@@ -262,6 +264,11 @@ int main(int argc, char **argv) {
             if (g_wallpaper_changed) {
                 g_wallpaper_changed = false;
                 if (g_wallpaper_path) {
+                    // Update persistent config on disk immediately
+                    if (g_config.default_wallpaper) free(g_config.default_wallpaper);
+                    g_config.default_wallpaper = strdup(g_wallpaper_path);
+                    config_save(g_config_path, &g_config);
+
                     bool is_now_video = is_video(g_wallpaper_path);
                     
                     // If it changed, reset everything

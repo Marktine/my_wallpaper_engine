@@ -24,6 +24,10 @@ struct file_entry files[MAX_FILES];
 int num_files = 0;
 int selected_index = 0;
 
+// Internal state logging
+char g_status_msg[256] = "";
+char g_last_sent_path[MAX_PATH_LENGTH] = "";
+
 // Enforces a directory "jail" so users cannot traverse above the chosen root
 char g_root_dir[MAX_PATH_LENGTH] = "";
 
@@ -138,24 +142,62 @@ void draw_ui() {
             else mvprintw(display_y, 2, "   %s ", files[i].name);
         }
     }
+
+    if (strlen(g_status_msg) > 0) {
+        if (strncmp(g_status_msg, "ERROR", 5) == 0) {
+            attron(COLOR_PAIR(1));
+            mvprintw(LINES - 1, 2, "%s", g_status_msg);
+            attroff(COLOR_PAIR(1));
+        } else if (strncmp(g_status_msg, "INFO", 4) == 0) {
+            attron(COLOR_PAIR(3));
+            mvprintw(LINES - 1, 2, "%s", g_status_msg);
+            attroff(COLOR_PAIR(3));
+        } else {
+            attron(COLOR_PAIR(2));
+            mvprintw(LINES - 1, 2, "%s", g_status_msg);
+            attroff(COLOR_PAIR(2));
+        }
+    }
+
     refresh();
 }
 
-void send_ipc_wallpaper(const char *path) {
+bool send_ipc_wallpaper(const char *path) {
+    if (strcmp(g_last_sent_path, path) == 0) {
+        strcpy(g_status_msg, "INFO: Wallpaper is already active!");
+        return true;
+    }
+
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd < 0) return;
+    if (fd < 0) {
+        strcpy(g_status_msg, "ERROR: Socket unavailable!");
+        return false;
+    }
 
     struct sockaddr_un addr = { .sun_family = AF_UNIX };
     strncpy(addr.sun_path, IPC_SOCKET_PATH, sizeof(addr.sun_path) - 1);
 
-    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
-        struct ipc_command cmd;
-        memset(&cmd, 0, sizeof(cmd));
-        cmd.type = IPC_CMD_SET_WALLPAPER;
-        strncpy(cmd.payload, path, sizeof(cmd.payload) - 1);
-        send(fd, &cmd, sizeof(cmd), 0);
+    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        strcpy(g_status_msg, "ERROR: Daemon process unreachable or dead!");
+        close(fd);
+        return false;
     }
+
+    struct ipc_command cmd;
+    memset(&cmd, 0, sizeof(cmd));
+    cmd.type = IPC_CMD_SET_WALLPAPER;
+    strncpy(cmd.payload, path, sizeof(cmd.payload) - 1);
+    
+    if (send(fd, &cmd, sizeof(cmd), 0) < 0) {
+        strcpy(g_status_msg, "ERROR: Interrupted sending command to Daemon!");
+        close(fd);
+        return false;
+    }
+    
+    strcpy(g_last_sent_path, path);
+    strcpy(g_status_msg, "SUCCESS: Sent to background daemon!");
     close(fd);
+    return true;
 }
 
 int main(int argc, char **argv) {
@@ -176,6 +218,10 @@ int main(int argc, char **argv) {
     }
 
     initscr();
+    start_color();
+    init_pair(1, COLOR_RED, COLOR_BLACK);
+    init_pair(2, COLOR_GREEN, COLOR_BLACK);
+    init_pair(3, COLOR_YELLOW, COLOR_BLACK);
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
@@ -185,6 +231,7 @@ int main(int argc, char **argv) {
 
     int ch;
     while ((ch = getch()) != 'q') {
+        g_status_msg[0] = '\0'; // Clear previous status messages
         switch (ch) {
             case KEY_UP:
                 if (selected_index > 0) selected_index--;

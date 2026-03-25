@@ -60,6 +60,20 @@ bool config_load(const char *path, struct app_config *config) {
     return true;
 }
 
+bool config_save(const char *path, struct app_config *config) {
+    if (!path || !config || !config->default_wallpaper) return false;
+    
+    FILE *file = fopen(path, "w");
+    if (!file) return false;
+    
+    // Fallback: Using simple string-formatter since it's a flat struct currently
+    // Prevents requiring the entire heavy yaml_emitter_t boilerplate for one key.
+    fprintf(file, "default_wallpaper: %s\n", config->default_wallpaper);
+    
+    fclose(file);
+    return true;
+}
+
 void config_free(struct app_config *config) {
     if (config->default_wallpaper) {
         free(config->default_wallpaper);
