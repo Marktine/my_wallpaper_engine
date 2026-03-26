@@ -105,6 +105,8 @@ void mpv_draw(int width, int height) {
     mpv_render_context_render(mpv_gl, params);
 }
 
+#include <malloc.h>
+
 void mpv_cleanup(void) {
     if (mpv_gl) {
         mpv_render_context_free(mpv_gl);
@@ -114,4 +116,7 @@ void mpv_cleanup(void) {
         mpv_terminate_destroy(mpv_ctx);
         mpv_ctx = NULL;
     }
+    // Force glibc to return freed memory chunks to the Linux kernel.
+    // Without this, the process RSS often remains massive after a video closes.
+    malloc_trim(0);
 }

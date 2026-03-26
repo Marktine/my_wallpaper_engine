@@ -78,12 +78,12 @@ static void layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *su
     if (!g_gl_initialized && out->egl_surface != EGL_NO_SURFACE) {
         eglMakeCurrent(g_render_state.egl_display, out->egl_surface, out->egl_surface, g_render_state.egl_context);
         render_init_gl(&g_render_state);
-        mpv_init(on_mpv_update_cb);
         g_gl_initialized = true;
 
         if (g_wallpaper_path) {
             g_video_mode = is_video(g_wallpaper_path);
             if (g_video_mode) {
+                mpv_init(on_mpv_update_cb);
                 mpv_load_file(g_wallpaper_path);
             } else {
                 int w, h;
@@ -275,7 +275,17 @@ int main(int argc, char **argv) {
                     
                     // If it changed, reset everything
                     if (is_now_video != g_video_mode) {
-                        if (g_texture) {
+                        if (is_now_video) {
+                            if (g_texture) {
+                                glDeleteTextures(1, &g_texture);
+                                g_texture = 0;
+                            }
+                            mpv_init(on_mpv_update_cb);
+                        } else {
+                            mpv_cleanup();
+                        }
+                    } else {
+                        if (!is_now_video && g_texture) {
                             glDeleteTextures(1, &g_texture);
                             g_texture = 0;
                         }
@@ -285,12 +295,6 @@ int main(int argc, char **argv) {
                     if (g_video_mode) {
                         mpv_load_file(g_wallpaper_path);
                     } else {
-                        mpv_stop();
-                        if (g_texture) {
-                            glDeleteTextures(1, &g_texture);
-                            g_texture = 0;
-                        }
-                        
                         int max_w = 1920, max_h = 1080;
                         if (outputs && outputs->width > 0) {
                             max_w = outputs->width;
