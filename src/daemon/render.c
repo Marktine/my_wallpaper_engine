@@ -1,5 +1,6 @@
 #include "daemon/render.h"
 #include "daemon/stb_image.h"
+#include "daemon/stb_image_resize.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <wayland-egl.h>
@@ -98,7 +99,7 @@ bool render_init_gl(struct render_state *state) {
     return true;
 }
 
-GLuint render_load_image(const char *path, int *width, int *height) {
+GLuint render_load_image(const char *path, int *width, int *height, int target_w, int target_h) {
     // In OpenGL context!
     int channels;
     stbi_set_flip_vertically_on_load(true);
@@ -106,6 +107,26 @@ GLuint render_load_image(const char *path, int *width, int *height) {
     if (!data) {
         fprintf(stderr, "Failed to load image: %s\n", path);
         return 0;
+    }
+
+    if (target_w > 0 && target_h > 0 && (*width > target_w || *height > target_h)) {
+        // Keep aspect ratio covering the target dimensions
+        float scale_w = (float)target_w / *width;
+        float scale_h = (float)target_h / *height;
+        float scale = (scale_w > scale_h) ? scale_w : scale_h;
+        if (scale > 1.0f) scale = 1.0f; // Only scale down
+        
+        int new_w = *width * scale;
+        int new_h = *height * scale;
+        
+        unsigned char *resized_data = malloc(new_w * new_h * 4);
+        if (resized_data) {
+            stbir_resize_uint8(data, *width, *height, 0, resized_data, new_w, new_h, 0, 4);
+            stbi_image_free(data);
+            data = resized_data;
+            *width = new_w;
+            *height = new_h;
+        }
     }
 
     GLuint texture;

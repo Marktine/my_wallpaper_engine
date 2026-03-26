@@ -25,7 +25,7 @@ bool render_init(struct wl_display *wl_display, struct render_state *state);
 bool render_init_gl(struct render_state *state);
 
 // Loads an image from disk into a GL texture
-GLuint render_load_image(const char *path, int *width, int *height);
+GLuint render_load_image(const char *path, int *width, int *height, int target_w, int target_h);
 
 // Binds the surface, draws the texture, and swaps buffers
 void render_draw(struct render_state *state, EGLSurface egl_surface, GLuint texture, int win_w, int win_h);

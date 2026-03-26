@@ -87,7 +87,9 @@ static void layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *su
                 mpv_load_file(g_wallpaper_path);
             } else {
                 int w, h;
-                g_texture = render_load_image(g_wallpaper_path, &w, &h);
+                int target_w = width;
+                int target_h = height;
+                g_texture = render_load_image(g_wallpaper_path, &w, &h, target_w, target_h);
             }
             g_wallpaper_changed = false;
         }
@@ -288,8 +290,19 @@ int main(int argc, char **argv) {
                             glDeleteTextures(1, &g_texture);
                             g_texture = 0;
                         }
+                        
+                        int max_w = 1920, max_h = 1080;
+                        if (outputs && outputs->width > 0) {
+                            max_w = outputs->width;
+                            max_h = outputs->height;
+                            for (struct output *out = outputs->next; out; out = out->next) {
+                                if (out->width > max_w) max_w = out->width;
+                                if (out->height > max_h) max_h = out->height;
+                            }
+                        }
+                        
                         int w, h;
-                        g_texture = render_load_image(g_wallpaper_path, &w, &h);
+                        g_texture = render_load_image(g_wallpaper_path, &w, &h, max_w, max_h);
                         printf("Loaded new static wallpaper texture: %d\n", g_texture);
                     }
                 }

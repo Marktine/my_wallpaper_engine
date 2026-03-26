@@ -37,3 +37,8 @@ Simply start the background daemon natively, then launch the interactive TUI to 
 ./build/wallpaper-tui
 ```
 *(Press `o` inside the TUI to scan custom wallpaper paths instantly!)*
+
+## Optimizations
+
+### Image Downscaling
+To save memory and rendering resources, static wallpapers are dynamically scaled down to fit your active monitor resolution when loading. This optimization uses `stb_image_resize` to ensure high-resolution images perfectly encompass the target screen dimensions without bloating video RAM before uploading to the GPU as an OpenGL texture.
