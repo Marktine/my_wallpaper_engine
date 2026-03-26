@@ -1,6 +1,6 @@
 # My Wallpaper Engine
 
-A highly-optimized, incredibly lightweight animated wallpaper engine designed specifically for **Wayland** (and strictly optimized for **Hyprland**). Written completely from the ground up in modular **C11**, it entirely bypasses the bloat of standard modern desktop environments.
+An incredibly lightweight animated wallpaper engine designed specifically for **Wayland** (and strictly optimized for **Hyprland**). Written completely from the ground up in modular **C11**, it entirely bypasses the bloat of standard modern desktop environments.
 
 ## Architecture Structure
 The project is split into two asynchronous binaries that communicate entirely via local UNIX Sockets (`sys/un.h`) to keep your graphics card rendering pipeline separate from your interface interaction:

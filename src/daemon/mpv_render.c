@@ -24,10 +24,12 @@ bool mpv_init(void (*on_update)(void)) {
     mpv_ctx = mpv_create();
     if (!mpv_ctx) return false;
 
-    // Disabled hwdec=auto because it causes intense Mesa driver segfaults
-    // inside headless-style layer shell OpenGL contexts on certain hardware.
-    // Software decoding is extremely fast and 100% stable.
-    // mpv_set_option_string(mpv_ctx, "hwdec", "auto"); 
+    // hwdec=auto-copy: Uses the GPU's fixed-function video decoder (VAAPI/VDPAU)
+    // to offload heavy H.264/H.265 decoding from shader cores, but copies the
+    // decoded frame through CPU memory before GL upload. This avoids the Mesa
+    // EGL interop segfaults that hwdec=auto causes in layer-shell contexts,
+    // while still being far lighter on GPU than full software decoding.
+    mpv_set_option_string(mpv_ctx, "hwdec", "auto-copy");
     
     mpv_set_option_string(mpv_ctx, "loop", "inf");   // Loop wallpapers
     mpv_set_option_string(mpv_ctx, "vo", "libmpv");  // Engine direct render
