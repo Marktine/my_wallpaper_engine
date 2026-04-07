@@ -15,6 +15,7 @@
 #include "daemon/hyprland_ipc.h"
 #include "common/config.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include "daemon/plugin_manager.h"
 
 struct render_state g_render_state;
 GLuint g_texture = 0;
@@ -192,6 +193,16 @@ int main(int argc, char **argv) {
         daemon(0, 0); // fork and run in background
     }
 
+    // MUST happen before wl_display_connect(): gtk4-layer-shell installs
+    // wl_proxy hooks at library constructor time. If libwayland is already
+    // connected when the library loads, the hooks are missed and Hyprland
+    // will treat GTK layer-shell windows as ordinary tiled xdg_toplevels.
+    char config_dir[1024] = {0};
+    if (home) {
+        snprintf(config_dir, sizeof(config_dir), "%s/.config/my_wallpaper_engine", home);
+        plugin_manager_init(config_dir);
+    }
+
     display = wl_display_connect(NULL);
     if (!display) return EXIT_FAILURE;
 
@@ -224,6 +235,8 @@ int main(int argc, char **argv) {
         fds[3] = (struct pollfd){ .fd = hypr_fd, .events = POLLIN };
         nfds = 4;
     }
+
+    // plugin_manager_init() already called before wl_display_connect() above.
 
     printf("Wallpaper daemon started. Waiting for events...\n");
     while (1) {
@@ -328,6 +341,7 @@ int main(int argc, char **argv) {
     }
 
     mpv_cleanup();
+    plugin_manager_cleanup();
     render_cleanup(&g_render_state);
     wl_registry_destroy(registry);
     wl_display_disconnect(display);
